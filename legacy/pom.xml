@@ -18,32 +18,24 @@
         Description for Janus
     </description>
 
+    <distributionManagement>
+        <repository>
+            <id>protoqsar-maven-releases</id>
+            <url>https://nexus.protoqsar.com/repository/maven-releases/</url>
+        </repository>
+    </distributionManagement>
+
     <repositories>
         <repository>
-            <id>maven-group</id>
-            <url>http://tech.kode-datacenter.net:8081/repository/maven-group/</url>
+            <id>maven-central</id>
+            <url>https://repo1.maven.org/maven2/</url>
         </repository>
-
         <repository>
-            <id>nexus-idea-snapshots</id>
-            <url>https://nexus.ideaconsult.net/content/repositories/snapshots</url>
+            <!-- public repo hosted by ProtoQSAR, access with maven-public:maven-public -->
+            <id>protoqsar-maven-public</id>
+            <url>https://nexus.protoqsar.com/repository/maven-public/</url>
         </repository>
-
-
     </repositories>
-
-    <distributionManagement>
-
-        <snapshotRepository>
-            <id>nexus-snapshots</id>
-            <url>http://tech.kode-datacenter.net:8081/repository/maven-snapshots/</url>
-        </snapshotRepository>
-        <repository>
-            <id>nexus-releases</id>
-            <url>http://tech.kode-datacenter.net:8081/repository/maven-releases/</url>
-        </repository>
-
-    </distributionManagement>
 
 
 
