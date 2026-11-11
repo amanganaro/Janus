@@ -42,12 +42,6 @@
     <dependencies>
 
         <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-swing</artifactId>
-            <version>11-ea+24</version>
-        </dependency>
-
-        <dependency>
             <groupId>ambit</groupId>
             <artifactId>ambit2-smarts</artifactId>
             <version>4.1.0-SNAPSHOT</version>
@@ -58,12 +52,6 @@
             <groupId>InSilico</groupId>
             <artifactId>Core</artifactId>
             <version>1.3.21</version>
-        </dependency>
-
-        <dependency>
-            <groupId>insilico</groupId>
-            <artifactId>additionalui</artifactId>
-            <version>1</version>
         </dependency>
 
         <dependency>
