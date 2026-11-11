@@ -1,0 +1,1 @@
+The frontend will be an Angula application

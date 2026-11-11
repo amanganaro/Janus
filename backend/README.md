@@ -1,0 +1,1 @@
+The backend will be a Spring Boot Java application
