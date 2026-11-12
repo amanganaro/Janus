@@ -5,9 +5,11 @@ import insilico.janus.api.config.JanusEngineHolder;
 import insilico.janus.api.dto.HealthDto;
 import insilico.janus.api.dto.JanusWorkflowType;
 import insilico.janus.api.dto.MetadataDto;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
  * The endpoints a client uses to discover what the service offers and whether it is ready.
  */
 @RestController
-@RequestMapping("/api")
+@RequestMapping(path = "/api", produces = MediaType.APPLICATION_JSON_VALUE)
 @Tag(name = "Service", description = "What the service offers and whether it is ready")
 public class JanusMetadataController {
 
@@ -44,6 +46,7 @@ public class JanusMetadataController {
      *
      * @return the metadata of the service
      */
+    @Operation(operationId = "getMetadata")
     @GetMapping("/metadata")
     public MetadataDto metadata() {
         List<MetadataDto.ExperimentalKeyInfo> keys = new ArrayList<>();
@@ -58,6 +61,7 @@ public class JanusMetadataController {
      *
      * @return the state of the engine
      */
+    @Operation(operationId = "getHealth")
     @GetMapping("/health")
     public HealthDto health() {
         return new HealthDto(engineHolder.isReady(), engineHolder.getError());

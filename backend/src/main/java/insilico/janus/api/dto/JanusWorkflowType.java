@@ -4,7 +4,7 @@ import insilico.janus.JanusEngine;
 
 /**
  * The seven assessment workflows of Janus, mapping the public API names to the numeric
- * keys used internally by {@link JanusEngine}.
+ * keys used internally by the calculation engine.
  */
 public enum JanusWorkflowType {
 

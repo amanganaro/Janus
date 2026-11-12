@@ -5,7 +5,6 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.servers.Server;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,9 +19,6 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class OpenApiConfig {
-
-    @Value("${server.port:8080}")
-    private int port;
 
     /**
      * @return the metadata of the API
@@ -45,8 +41,10 @@ public class OpenApiConfig {
                                 The service runs locally inside the desktop application and \
                                 has no authentication on purpose.""")
                         .license(new License().name("Proprietary - ProtoQSAR")))
+                // relative: the frontend calls the backend on its own origin, through the
+                // dev-server proxy now and from the packaged desktop application later
                 .servers(List.of(new Server()
-                        .url("http://localhost:" + port)
-                        .description("Local backend, bundled in the desktop application")));
+                        .url("/")
+                        .description("The backend itself")));
     }
 }

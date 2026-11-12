@@ -2,7 +2,7 @@ package insilico.janus.api.dto;
 
 /**
  * The lifecycle of a job. Since the engine is not thread-safe, only one job runs at a time
- * and the others wait in {@link #QUEUED}.
+ * and the others wait in the QUEUED state.
  */
 public enum JobStatus {
     /** Accepted, waiting for the engine to be free. */

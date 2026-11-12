@@ -5,6 +5,7 @@ import insilico.janus.api.dto.JobDto;
 import insilico.janus.api.service.JanusJob;
 import insilico.janus.api.service.JanusJobService;
 import insilico.janus.api.service.JobEventPublisher;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -34,7 +35,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * molecule.</p>
  */
 @RestController
-@RequestMapping("/api/jobs")
+@RequestMapping(path = "/api/jobs", produces = MediaType.APPLICATION_JSON_VALUE)
 @Tag(name = "Jobs", description = "Submitting calculations and collecting their results")
 public class JanusJobController {
 
@@ -61,6 +62,7 @@ public class JanusJobController {
         @ApiResponse(responseCode = "400", description = "No molecule of the request could be read",
                 content = @Content(schema = @Schema(implementation = ErrorDto.class)))
     })
+    @Operation(operationId = "submitJob")
     @PostMapping
     public ResponseEntity<JobDto> submit(@Valid @RequestBody JanusJobRequest request) {
         JanusJob job = jobService.submit(request);
@@ -78,6 +80,7 @@ public class JanusJobController {
         @ApiResponse(responseCode = "404", description = "Unknown job",
                 content = @Content(schema = @Schema(implementation = ErrorDto.class)))
     })
+    @Operation(operationId = "getJob")
     @GetMapping("/{id}")
     public JobDto get(@PathVariable String id) {
         return jobService.get(id).toDto(true);
@@ -88,6 +91,7 @@ public class JanusJobController {
      *
      * @return the jobs, most recent first
      */
+    @Operation(operationId = "listJobs")
     @GetMapping
     public List<JobDto> list() {
         return jobService.list().stream().map(job -> job.toDto(false)).toList();
@@ -110,6 +114,7 @@ public class JanusJobController {
         @ApiResponse(responseCode = "404", description = "Unknown job",
                 content = @Content(schema = @Schema(implementation = ErrorDto.class)))
     })
+    @Operation(operationId = "jobEvents")
     @GetMapping(path = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter events(@PathVariable String id) {
         JanusJob job = jobService.get(id);
@@ -133,6 +138,7 @@ public class JanusJobController {
         @ApiResponse(responseCode = "404", description = "Unknown job",
                 content = @Content(schema = @Schema(implementation = ErrorDto.class)))
     })
+    @Operation(operationId = "cancelJob")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> cancel(@PathVariable String id) {
         jobService.cancel(id);

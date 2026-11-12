@@ -9,8 +9,8 @@
     "version" : "1.0.0"
   },
   "servers" : [ {
-    "url" : "http://localhost:0",
-    "description" : "Local backend, bundled in the desktop application"
+    "url" : "/",
+    "description" : "The backend itself"
   } ],
   "tags" : [ {
     "name" : "Service",
@@ -25,12 +25,12 @@
         "tags" : [ "Jobs" ],
         "summary" : "Returns every job of this session, without their results.",
         "description" : "Returns every job of this session, without their results.",
-        "operationId" : "list",
+        "operationId" : "listJobs",
         "responses" : {
           "200" : {
             "description" : "the jobs, most recent first",
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "type" : "array",
                   "items" : {
@@ -46,7 +46,7 @@
         "tags" : [ "Jobs" ],
         "summary" : "Submits a new calculation.",
         "description" : "Submits a new calculation.",
-        "operationId" : "submit",
+        "operationId" : "submitJob",
         "requestBody" : {
           "description" : "the molecules to assess and the options",
           "content" : {
@@ -62,7 +62,7 @@
           "202" : {
             "description" : "The job was queued",
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/JobDto"
                 }
@@ -72,7 +72,7 @@
           "400" : {
             "description" : "No molecule of the request could be read",
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ErrorDto"
                 }
@@ -87,12 +87,12 @@
         "tags" : [ "Service" ],
         "summary" : "Describes the workflows and the experimental values the service understands.",
         "description" : "Describes the workflows and the experimental values the service understands.",
-        "operationId" : "metadata",
+        "operationId" : "getMetadata",
         "responses" : {
           "200" : {
             "description" : "the metadata of the service",
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/MetadataDto"
                 }
@@ -107,7 +107,7 @@
         "tags" : [ "Jobs" ],
         "summary" : "Returns the state of a job, including its results once it has completed.",
         "description" : "Returns the state of a job, including its results once it has completed.",
-        "operationId" : "get",
+        "operationId" : "getJob",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -121,7 +121,7 @@
           "200" : {
             "description" : "The state of the job",
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/JobDto"
                 }
@@ -131,7 +131,7 @@
           "404" : {
             "description" : "Unknown job",
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ErrorDto"
                 }
@@ -144,7 +144,7 @@
         "tags" : [ "Jobs" ],
         "summary" : "Cancels a job and forgets it.",
         "description" : "Cancels a job and forgets it.",
-        "operationId" : "cancel",
+        "operationId" : "cancelJob",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -161,7 +161,7 @@
           "404" : {
             "description" : "Unknown job",
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ErrorDto"
                 }
@@ -176,7 +176,7 @@
         "tags" : [ "Jobs" ],
         "summary" : "Streams the progress of a job as server-sent events",
         "description" : "Streams the progress of a job as server-sent events.\n\n <p>A running calculation cannot actually be stopped, so the events of a cancelled job\n simply end.</p>",
-        "operationId" : "events",
+        "operationId" : "jobEvents",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -215,12 +215,12 @@
         "tags" : [ "Service" ],
         "summary" : "Tells whether the models are loaded.",
         "description" : "Tells whether the models are loaded. Jobs submitted before that are accepted but wait.",
-        "operationId" : "health",
+        "operationId" : "getHealth",
         "responses" : {
           "200" : {
             "description" : "the state of the engine",
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HealthDto"
                 }
@@ -503,7 +503,7 @@
         "properties" : {
           "key" : {
             "type" : "string",
-            "description" : "the key to use in {@link MoleculeRequestDto#experimentalValues MoleculeRequestDto#experimentalValues()}"
+            "description" : "the key to use in the experimentalValues of a molecule"
           },
           "description" : {
             "type" : "string",
@@ -536,7 +536,7 @@
         "properties" : {
           "id" : {
             "type" : "string",
-            "description" : "the value to use in {@link JanusJobRequest#workflows JanusJobRequest#workflows()}",
+            "description" : "the value to use in the workflows field of a job request",
             "enum" : [ "PERSISTENCE", "BIOACCUMULATION", "TOXICITY", "CARCINOGENICITY", "MUTAGENICITY", "REPRO_TOXICITY", "ENDOCRINE" ]
           },
           "label" : {

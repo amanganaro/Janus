@@ -12,14 +12,14 @@ import java.util.List;
 public record MetadataDto(List<WorkflowInfo> workflows, List<ExperimentalKeyInfo> experimentalKeys) {
 
     /**
-     * @param id    the value to use in {@link JanusJobRequest#workflows()}
+     * @param id    the value to use in the workflows field of a job request
      * @param label the human readable name of the workflow
      */
     public record WorkflowInfo(JanusWorkflowType id, String label) {
     }
 
     /**
-     * @param key         the key to use in {@link MoleculeRequestDto#experimentalValues()}
+     * @param key         the key to use in the experimentalValues of a molecule
      * @param description what the value is, including its unit
      */
     public record ExperimentalKeyInfo(String key, String description) {
