@@ -175,10 +175,28 @@ stack has to move to CDK ≥ 2.10 first. See `legacy/README.md` for the full pla
 
 - The `InSilico:*` and CDK versions are copied verbatim from `legacy/pom.xml`; they are pinned
   to what the ProtoQSAR Nexus actually publishes and should not be bumped casually.
-- The JAXB artifacts are pinned to 2.3.x in `dependencyManagement`: the VEGA models read their
-  PMML through jpmml 1.5.6, which needs the `javax.xml.bind` namespace, while Spring Boot
-  manages JAXB to 4.x, which only ships `jakarta.xml.bind`. Without the pin the engine fails to
-  start with `NoClassDefFoundError: javax/xml/bind/JAXBContext`.
+- **Two JAXB namespaces coexist on purpose.** JAXB renamed its packages: up to 2.3 it is
+  `javax.xml.bind`, from 3 on it is `jakarta.xml.bind` — different classes, not two versions of
+  the same ones. The VEGA models read their PMML through jpmml 1.5.6, compiled against the
+  `javax` namespace, while springdoc needs the `jakarta` annotations. So:
+  - `jakarta.xml.bind:jakarta.xml.bind-api` is left at the version Spring Boot manages (4.x),
+    which is what springdoc reads;
+  - `javax.xml.bind:jaxb-api:2.3.1` is added as a direct dependency, which is what jpmml reads;
+  - `org.glassfish.jaxb:jaxb-runtime` is pinned to **2.3.1** in `dependencyManagement`, together
+    with `txw2` and `istack-commons-runtime`. 2.3.1 is the last release that depends on the
+    `javax.xml.bind` coordinates; from 2.3.2 it moves to the `jakarta` ones and the conflict
+    comes back.
+
+  A child `dependencyManagement` overrides the one inherited from `spring-boot-starter-parent`,
+  which is what makes the pin stick. There is a single JAXB runtime, the `javax` one, and
+  springdoc only needs the `jakarta` annotation classes, not a runtime of its own.
+
+  Get one half wrong and it shows immediately: without the `javax` side the engine fails to start
+  with `NoClassDefFoundError: javax/xml/bind/JAXBContext`, without the `jakarta` side
+  `/v3/api-docs` answers 500 with `NoClassDefFoundError: jakarta/xml/bind/annotation/XmlElement`.
+
+  Remove all of it when `InSilico:Core-Aux` moves to jpmml 1.6 or later, which uses the
+  `jakarta` namespace.
 
 ## Verifying against the legacy application
 
