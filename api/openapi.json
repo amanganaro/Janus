@@ -1,0 +1,564 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "Janus API",
+    "description" : "Assessment of the persistence, bioaccumulation, toxicity, carcinogenicity, mutagenicity, reproductive toxicity and endocrine disruption of a chemical, from its SMILES.\n\nA calculation is always a job: the request is accepted immediately, the progress can be followed on the event stream of the job, and the results are fetched once it completes.\n\nThe service runs locally inside the desktop application and has no authentication on purpose.",
+    "license" : {
+      "name" : "Proprietary - ProtoQSAR"
+    },
+    "version" : "1.0.0"
+  },
+  "servers" : [ {
+    "url" : "http://localhost:0",
+    "description" : "Local backend, bundled in the desktop application"
+  } ],
+  "tags" : [ {
+    "name" : "Service",
+    "description" : "What the service offers and whether it is ready"
+  }, {
+    "name" : "Jobs",
+    "description" : "Submitting calculations and collecting their results"
+  } ],
+  "paths" : {
+    "/api/jobs" : {
+      "get" : {
+        "tags" : [ "Jobs" ],
+        "summary" : "Returns every job of this session, without their results.",
+        "description" : "Returns every job of this session, without their results.",
+        "operationId" : "list",
+        "responses" : {
+          "200" : {
+            "description" : "the jobs, most recent first",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/JobDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Jobs" ],
+        "summary" : "Submits a new calculation.",
+        "description" : "Submits a new calculation.",
+        "operationId" : "submit",
+        "requestBody" : {
+          "description" : "the molecules to assess and the options",
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/JanusJobRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "The job was queued",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/JobDto"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "No molecule of the request could be read",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metadata" : {
+      "get" : {
+        "tags" : [ "Service" ],
+        "summary" : "Describes the workflows and the experimental values the service understands.",
+        "description" : "Describes the workflows and the experimental values the service understands.",
+        "operationId" : "metadata",
+        "responses" : {
+          "200" : {
+            "description" : "the metadata of the service",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MetadataDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{id}" : {
+      "get" : {
+        "tags" : [ "Jobs" ],
+        "summary" : "Returns the state of a job, including its results once it has completed.",
+        "description" : "Returns the state of a job, including its results once it has completed.",
+        "operationId" : "get",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "the identifier of the job",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "The state of the job",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/JobDto"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Unknown job",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Jobs" ],
+        "summary" : "Cancels a job and forgets it.",
+        "description" : "Cancels a job and forgets it.",
+        "operationId" : "cancel",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "the identifier of the job",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "The job was cancelled and forgotten"
+          },
+          "404" : {
+            "description" : "Unknown job",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{id}/events" : {
+      "get" : {
+        "tags" : [ "Jobs" ],
+        "summary" : "Streams the progress of a job as server-sent events",
+        "description" : "Streams the progress of a job as server-sent events.\n\n <p>A running calculation cannot actually be stopped, so the events of a cancelled job\n simply end.</p>",
+        "operationId" : "events",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "the identifier of the job",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "The stream of progress events, each carrying the state of the job",
+            "content" : {
+              "text/event-stream" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/JobDto"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Unknown job",
+            "content" : {
+              "text/event-stream" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health" : {
+      "get" : {
+        "tags" : [ "Service" ],
+        "summary" : "Tells whether the models are loaded.",
+        "description" : "Tells whether the models are loaded. Jobs submitted before that are accepted but wait.",
+        "operationId" : "health",
+        "responses" : {
+          "200" : {
+            "description" : "the state of the engine",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HealthDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "JanusJobRequest" : {
+        "required" : [ "molecules" ],
+        "type" : "object",
+        "properties" : {
+          "molecules" : {
+            "minItems" : 1,
+            "type" : "array",
+            "description" : "the molecules to assess; at least one",
+            "items" : {
+              "$ref" : "#/components/schemas/MoleculeRequestDto"
+            }
+          },
+          "metabolism" : {
+            "type" : "boolean",
+            "description" : "whether to generate and assess the metabolites of the input molecules.\n                   Defaults to <code>false</code>: the metabolism module is currently broken, see\n                   the README."
+          },
+          "workflows" : {
+            "type" : "array",
+            "description" : "the workflows to run; when <code>null</code> or empty, all of them are run",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "PERSISTENCE", "BIOACCUMULATION", "TOXICITY", "CARCINOGENICITY", "MUTAGENICITY", "REPRO_TOXICITY", "ENDOCRINE" ]
+            }
+          }
+        },
+        "description" : "The request body of <code>POST /api/jobs</code>."
+      },
+      "MoleculeRequestDto" : {
+        "required" : [ "smiles" ],
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "description" : "an optional identifier; when absent the engine assigns <code>&quot;Mol n&quot;</code>"
+          },
+          "smiles" : {
+            "minLength" : 1,
+            "type" : "string",
+            "description" : "the SMILES of the molecule, mandatory"
+          },
+          "experimentalValues" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "number",
+              "format" : "double"
+            },
+            "description" : "optional experimental values, keyed by the identifiers returned by\n                           <code>GET /api/metadata</code> (<code>bcf</code>, <code>logp</code>, <code>p_soil</code>,\n                           <code>p_water</code>, <code>p_sediment</code>, <code>tox</code>, <code>carc</code>,\n                           <code>muta</code>, <code>repro</code>, <code>ed</code>). When a workflow finds an\n                           experimental value for its property, it uses it instead of the\n                           prediction and reports full reliability."
+          }
+        },
+        "description" : "One input molecule of a job."
+      },
+      "ErrorDto" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string",
+            "description" : "a short description of the problem"
+          },
+          "details" : {
+            "type" : "array",
+            "description" : "the specific issues, e.g. one entry per invalid molecule",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "description" : "The body returned for a request that could not be accepted."
+      },
+      "AdditionalValueDto" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "description" : "the label of the value, as produced by the workflow"
+          },
+          "value" : {
+            "type" : "string",
+            "description" : "the value, always rendered as text by the workflow itself"
+          }
+        },
+        "description" : "One of the intermediate values a workflow exposes besides its own prediction (single model\n predictions, experimental values, applied rules)."
+      },
+      "JobDto" : {
+        "type" : "object",
+        "properties" : {
+          "jobId" : {
+            "type" : "string",
+            "description" : "the identifier of the job"
+          },
+          "status" : {
+            "type" : "string",
+            "description" : "the current status",
+            "enum" : [ "QUEUED", "RUNNING", "COMPLETED", "FAILED", "CANCELLED" ]
+          },
+          "progress" : {
+            "$ref" : "#/components/schemas/JobProgressDto"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "description" : "when the job was accepted",
+            "format" : "date-time"
+          },
+          "startedAt" : {
+            "type" : "string",
+            "description" : "when the calculation started, <code>null</code> while queued",
+            "format" : "date-time"
+          },
+          "finishedAt" : {
+            "type" : "string",
+            "description" : "when the calculation ended, <code>null</code> while queued or running",
+            "format" : "date-time"
+          },
+          "results" : {
+            "type" : "array",
+            "description" : "the assessment of every molecule, <code>null</code> until the job completes",
+            "items" : {
+              "$ref" : "#/components/schemas/MoleculeResultDto"
+            }
+          },
+          "log" : {
+            "type" : "array",
+            "description" : "the diagnostic messages produced during the calculation",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "error" : {
+            "type" : "string",
+            "description" : "the reason of the failure, only set when the status is <code>FAILED</code>"
+          }
+        },
+        "description" : "The state of a job, as returned by <code>POST /api/jobs</code> and <code>GET /api/jobs/{id</code>}.\n Results and log are only populated once the job has finished."
+      },
+      "JobProgressDto" : {
+        "type" : "object",
+        "properties" : {
+          "phase" : {
+            "type" : "string",
+            "description" : "the phase being executed, e.g. <code>&quot;PERSISTENCE workflow&quot;</code>"
+          },
+          "processedMolecules" : {
+            "type" : "integer",
+            "description" : "the molecules processed so far within this phase",
+            "format" : "int32"
+          },
+          "totalMolecules" : {
+            "type" : "integer",
+            "description" : "the molecules this phase will process",
+            "format" : "int32"
+          }
+        },
+        "description" : "The progress of a running job.\n\n <p>The engine runs the workflows one after the other over the whole dataset, so the progress\n is reported per phase: <code>processedMolecules</code> restarts from zero on every phase\n change.</p>"
+      },
+      "MoleculeResultDto" : {
+        "type" : "object",
+        "properties" : {
+          "num" : {
+            "type" : "integer",
+            "description" : "the 1-based position of this result within the job",
+            "format" : "int32"
+          },
+          "id" : {
+            "type" : "string",
+            "description" : "the identifier of the molecule"
+          },
+          "smiles" : {
+            "type" : "string",
+            "description" : "the SMILES of the molecule, as read by the engine"
+          },
+          "valid" : {
+            "type" : "boolean",
+            "description" : "whether the molecule could be processed"
+          },
+          "metabolite" : {
+            "type" : "boolean",
+            "description" : "whether this result describes a metabolite of another molecule"
+          },
+          "parentNum" : {
+            "type" : "integer",
+            "description" : "the <code>num</code> of the parent molecule, <code>null</code> if not a metabolite",
+            "format" : "int32"
+          },
+          "metabolites" : {
+            "type" : "array",
+            "description" : "the <code>num</code> of the metabolites generated from this molecule",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "notes" : {
+            "type" : "string",
+            "description" : "remarks produced during the calculation"
+          },
+          "persistence" : {
+            "$ref" : "#/components/schemas/WorkflowResultDto"
+          },
+          "bioaccumulation" : {
+            "$ref" : "#/components/schemas/WorkflowResultDto"
+          },
+          "toxicity" : {
+            "$ref" : "#/components/schemas/WorkflowResultDto"
+          },
+          "carcinogenicity" : {
+            "$ref" : "#/components/schemas/WorkflowResultDto"
+          },
+          "mutagenicity" : {
+            "$ref" : "#/components/schemas/WorkflowResultDto"
+          },
+          "reproToxicity" : {
+            "$ref" : "#/components/schemas/WorkflowResultDto"
+          },
+          "endocrine" : {
+            "$ref" : "#/components/schemas/WorkflowResultDto"
+          },
+          "scoreVPvB" : {
+            "type" : "number",
+            "description" : "the vPvB index, <code>null</code> when it could not be calculated",
+            "format" : "double"
+          },
+          "scorePBT" : {
+            "type" : "number",
+            "description" : "the PBT index, <code>null</code> when it could not be calculated",
+            "format" : "double"
+          },
+          "scoreSVHC" : {
+            "type" : "number",
+            "description" : "the SVHC index, <code>null</code> when it could not be calculated",
+            "format" : "double"
+          }
+        },
+        "description" : "The complete Janus assessment of one molecule: the seven workflow results plus the three\n aggregated regulatory indices.\n\n <p>When the metabolism calculation is enabled, the results of a job also contain the\n metabolites of the input molecules; those are linked to their parent through\n <code>parentNum</code> and <code>metabolites</code>, which refer to the <code>num</code> field.</p>"
+      },
+      "WorkflowResultDto" : {
+        "type" : "object",
+        "properties" : {
+          "predictionClass" : {
+            "type" : "string",
+            "description" : "the qualitative assessment, or <code>&quot;-&quot;</code> when not available"
+          },
+          "prediction" : {
+            "type" : "number",
+            "description" : "the quantitative assessment, in the unit of the property",
+            "format" : "double"
+          },
+          "reliability" : {
+            "type" : "number",
+            "description" : "the reliability of the assessment, in [0, 1]",
+            "format" : "double"
+          },
+          "score" : {
+            "type" : "number",
+            "description" : "the normalized hazard score, in [0, 1]",
+            "format" : "double"
+          },
+          "additionalValues" : {
+            "type" : "array",
+            "description" : "the intermediate values, in the order the workflow produced them",
+            "items" : {
+              "$ref" : "#/components/schemas/AdditionalValueDto"
+            }
+          }
+        },
+        "description" : "The outcome of a single workflow for one molecule.\n\n <p>All numeric fields are <code>null</code> when the workflow could not produce a value: the\n <code>-999999</code> sentinel used internally never reaches the API.</p>"
+      },
+      "ExperimentalKeyInfo" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string",
+            "description" : "the key to use in {@link MoleculeRequestDto#experimentalValues MoleculeRequestDto#experimentalValues()}"
+          },
+          "description" : {
+            "type" : "string",
+            "description" : "what the value is, including its unit"
+          }
+        }
+      },
+      "MetadataDto" : {
+        "type" : "object",
+        "properties" : {
+          "workflows" : {
+            "type" : "array",
+            "description" : "the available workflows",
+            "items" : {
+              "$ref" : "#/components/schemas/WorkflowInfo"
+            }
+          },
+          "experimentalKeys" : {
+            "type" : "array",
+            "description" : "the accepted keys for the experimental values of a molecule",
+            "items" : {
+              "$ref" : "#/components/schemas/ExperimentalKeyInfo"
+            }
+          }
+        },
+        "description" : "The static description of what the service can calculate, returned by\n <code>GET /api/metadata</code> so that a client does not have to hardcode it."
+      },
+      "WorkflowInfo" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "description" : "the value to use in {@link JanusJobRequest#workflows JanusJobRequest#workflows()}",
+            "enum" : [ "PERSISTENCE", "BIOACCUMULATION", "TOXICITY", "CARCINOGENICITY", "MUTAGENICITY", "REPRO_TOXICITY", "ENDOCRINE" ]
+          },
+          "label" : {
+            "type" : "string",
+            "description" : "the human readable name of the workflow"
+          }
+        }
+      },
+      "HealthDto" : {
+        "type" : "object",
+        "properties" : {
+          "ready" : {
+            "type" : "boolean",
+            "description" : "whether the engine finished loading the models"
+          },
+          "error" : {
+            "type" : "string",
+            "description" : "the reason why the engine could not be initialized, if it failed"
+          }
+        },
+        "description" : "The state of the calculation engine, returned by <code>GET /api/health</code>. Loading the models\n takes a while at startup, so a client should wait for <code>ready</code> before submitting jobs."
+      }
+    }
+  }
+}

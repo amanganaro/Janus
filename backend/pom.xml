@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.2</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>InSilico</groupId>
+    <artifactId>janus-backend</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+
+    <name>Janus Backend</name>
+    <description>REST API exposing the Janus QSAR assessment workflows</description>
+
+    <properties>
+        <java.version>21</java.version>
+        <springdoc.version>3.2.0</springdoc.version>
+        <therapi.version>0.15.0</therapi.version>
+        <!-- where the generated contract is written, for the frontend client generator -->
+        <openapi.output.file>${project.basedir}/../api/openapi.json</openapi.output.file>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>maven-central</id>
+            <url>https://repo1.maven.org/maven2/</url>
+        </repository>
+        <repository>
+            <!-- public repo hosted by ProtoQSAR, access with maven-public:maven-public -->
+            <id>protoqsar-maven-public</id>
+            <url>https://nexus.protoqsar.com/repository/maven-public/</url>
+        </repository>
+    </repositories>
+
+    <!--
+        Two JAXB namespaces have to coexist. The VEGA models read their PMML through jpmml
+        1.5.6, which is built against JAXB 2.x and its javax.xml.bind namespace; springdoc needs
+        the jakarta.xml.bind annotations of JAXB 4.x, which Spring Boot manages. So the
+        jakarta.xml.bind API is left at the version Boot picks, while the JAXB runtime is pinned
+        to 2.3.1, the last release that implements the javax namespace. Without this the engine
+        fails to start with NoClassDefFoundError: javax/xml/bind/JAXBContext, and with the wrong
+        half of it /v3/api-docs fails with NoClassDefFoundError:
+        jakarta/xml/bind/annotation/XmlElement. Remove it only together with an upgrade of
+        InSilico:Core-Aux past jpmml 1.5.
+    -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.glassfish.jaxb</groupId>
+                <artifactId>jaxb-runtime</artifactId>
+                <version>2.3.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.jaxb</groupId>
+                <artifactId>txw2</artifactId>
+                <version>2.3.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.istack</groupId>
+                <artifactId>istack-commons-runtime</artifactId>
+                <version>3.0.7</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- the javax.xml.bind namespace required by jpmml, see the note above -->
+        <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.3.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
+        </dependency>
+
+        <!-- OpenAPI contract: served at /v3/api-docs, browsable at /swagger-ui.html -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
+        <!--
+            Makes springdoc read the Javadoc of the controllers and of the DTOs, so that the
+            descriptions of the contract are the ones written in the code and never drift from
+            it. It needs the scribe annotation processor configured below.
+        -->
+        <dependency>
+            <groupId>com.github.therapi</groupId>
+            <artifactId>therapi-runtime-javadoc</artifactId>
+            <version>${therapi.version}</version>
+        </dependency>
+
+
+        <!--
+            SMIRKS support for the metabolism module (insilico.janus.eawag).
+            WARNING: this artifact is published neither on Maven Central nor on the ProtoQSAR
+            Nexus; it resolves only from a local ~/.m2 cache. See backend/README.md ("Metabolism")
+            for the migration to the native CDK SMIRKS API.
+        -->
+        <dependency>
+            <groupId>ambit</groupId>
+            <artifactId>ambit2-smarts</artifactId>
+            <version>4.1.0-SNAPSHOT</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>Core</artifactId>
+            <version>1.3.21</version>
+        </dependency>
+
+        <!-- PMML model classes (insilico.core.pmml), moved out of Core since 1.3.20 -->
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>Core-Aux</artifactId>
+            <version>1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.openscience.cdk</groupId>
+            <artifactId>cdk-bundle</artifactId>
+            <version>2.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-BCFArnotGobas</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-BCFCaesar</artifactId>
+            <version>2.1.16</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-BCFKNN</artifactId>
+            <version>1.1.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-BCFMeylan</artifactId>
+            <version>1.0.5</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-LogPALogP</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-LogPMeylan</artifactId>
+            <version>1.1.5</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-LogPMLogP</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-CarcinogenicityAntares</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-CarcinogenicityBB</artifactId>
+            <version>1.0.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-CarcinogenicityCaesar</artifactId>
+            <version>2.1.10</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-CarcinogenicityISSCANGX</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-CarcinogenicitySFIClassification</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-CarcinogenicitySFIRegression</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-CarcinogenicitySFOClassification</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-CarcinogenicitySFORegression</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-RBAIrfmn</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-RBACerapp</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-RBACompareIRFMN</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-MutagenicityBB</artifactId>
+            <version>1.0.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-MutagenicityCaesar</artifactId>
+            <version>2.1.14</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-MutagenicityConsensus</artifactId>
+            <version>1.0.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-MutagenicityKNN</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-MutagenicitySarpy</artifactId>
+            <version>1.0.8</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-ReadyBioIRFMN</artifactId>
+            <version>1.0.10</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-PersistenceSedimentIRFMN</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-PersistenceSedimentQuantitativeIRFMN</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-PersistenceSoilIRFMN</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-PersistenceSoilQuantitativeIRFMN</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-PersistenceWaterIRFMN</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-PersistenceWaterQuantatitativeIRFMN</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-DevtoxCaesar</artifactId>
+            <version>2.1.8</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-DevtoxPG</artifactId>
+            <version>1.1.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-ZebrafishCoral</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-WaterSolubility</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-AlgaeEC50</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-AlgaeNoec</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-DaphniaDemetra</artifactId>
+            <version>1.0.5.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-DaphniaEPA</artifactId>
+            <version>1.0.9</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-DaphniaEC50</artifactId>
+            <version>1.0.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-DaphniaNOEC</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-FatheadEPA</artifactId>
+            <version>1.0.10</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-FatHeadKNN</artifactId>
+            <version>1.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-GuppyKnn</artifactId>
+            <version>1.1.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-FishNOEC</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-FishNIC</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-FishLC50</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>InSilico</groupId>
+            <artifactId>VegaModels-FishKNN</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>com.github.therapi</groupId>
+                            <artifactId>therapi-runtime-javadoc-scribe</artifactId>
+                            <version>${therapi.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!-- read by OpenApiContractTest, which regenerates the contract -->
+                        <openapi.output.file>${openapi.output.file}</openapi.output.file>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

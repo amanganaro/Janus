@@ -1,0 +1,23 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: janus-backend
+  mvc:
+    async:
+      # a job can run for several minutes: never time out the progress stream
+      request-timeout: -1
+  jackson:
+    default-property-inclusion: non_null
+
+springdoc:
+  api-docs:
+    # 3.0 rather than the 3.1 default: the Angular client generators support it best
+    version: openapi_3_0
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    insilico.janus: INFO
