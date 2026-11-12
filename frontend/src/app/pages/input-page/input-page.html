@@ -1,0 +1,129 @@
+<div class="page">
+  <h1>New assessment</h1>
+
+  @if (!ready()) {
+    <div class="notice">
+      <mat-spinner diameter="20"></mat-spinner>
+      <span>
+        @if (backendError()) {
+          {{ backendError() }}
+        } @else {
+          The engine is loading its models, this takes a while on startup.
+        }
+      </span>
+    </div>
+  }
+
+  <mat-card>
+    <mat-card-header><mat-card-title>Molecules</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <p class="hint">
+        One molecule per line: the SMILES first, then any experimental value as
+        <code>key:value</code>, separated by tabs.
+      </p>
+
+      <div class="file-row">
+        <button matButton="outlined" type="button" (click)="fileInput.click()">
+          <mat-icon>upload_file</mat-icon>
+          Choose a file
+        </button>
+        <input
+          #fileInput
+          type="file"
+          accept=".txt,.smi,.smiles,text/plain"
+          hidden
+          (change)="onFileSelected($event)"
+        />
+        @if (fileName()) {
+          <span class="file-name">{{ fileName() }}</span>
+        }
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>…or paste the molecules here</mat-label>
+        <textarea
+          matInput
+          rows="8"
+          [value]="text()"
+          (input)="onTextChanged($any($event.target).value)"
+        ></textarea>
+      </mat-form-field>
+
+      <p class="count">
+        <strong>{{ molecules().length }}</strong> molecule(s) read.
+      </p>
+
+      @if (warnings().length) {
+        <ul class="warnings">
+          @for (warning of warnings(); track warning) {
+            <li>{{ warning }}</li>
+          }
+        </ul>
+      }
+
+      @if (molecules().length) {
+        <table class="preview">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>SMILES</th>
+              <th>Experimental values</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (molecule of molecules().slice(0, 5); track $index) {
+              <tr>
+                <td>{{ $index + 1 }}</td>
+                <td class="smiles">{{ molecule.smiles }}</td>
+                <td>
+                  @for (entry of (molecule.experimentalValues | keyvalue); track entry.key) {
+                    <span class="exp">{{ entry.key }}: {{ entry.value }}</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (molecules().length > 5) {
+          <p class="hint">…and {{ molecules().length - 5 }} more.</p>
+        }
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-header><mat-card-title>Options</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <div class="workflows">
+        @for (workflow of workflows(); track workflow.id) {
+          <mat-checkbox
+            [checked]="isSelected(workflow.id!)"
+            (change)="toggleWorkflow(workflow.id!, $event.checked)"
+          >
+            {{ workflow.label }}
+          </mat-checkbox>
+        }
+      </div>
+
+      <mat-checkbox [checked]="metabolism()" (change)="metabolism.set($event.checked)">
+        Calculate the metabolites of the input molecules
+      </mat-checkbox>
+      @if (metabolism()) {
+        <p class="warn">
+          The metabolism module is currently broken in the backend: for most molecules the job
+          fails with an aromaticity error. See the backend README.
+        </p>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  @if (submitError()) {
+    <p class="error">{{ submitError() }}</p>
+  }
+
+  <div class="actions">
+    <button matButton="filled" type="button" [disabled]="!canSubmit()" (click)="submit()">
+      Start the assessment
+    </button>
+  </div>
+</div>

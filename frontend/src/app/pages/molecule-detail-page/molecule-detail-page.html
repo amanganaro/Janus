@@ -1,0 +1,104 @@
+<div class="page">
+  <div class="header">
+    <a matButton [routerLink]="['/jobs', jobId(), 'results']">
+      <mat-icon>arrow_back</mat-icon>
+      Back to the results
+    </a>
+  </div>
+
+  @if (error()) {
+    <mat-card><mat-card-content><p class="error">{{ error() }}</p></mat-card-content></mat-card>
+  }
+
+  @if (result(); as molecule) {
+    <div class="row">
+      <mat-card class="info">
+        <mat-card-header><mat-card-title>Info</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <p>Molecule number: <strong>{{ molecule.num }}</strong></p>
+          <p>Molecule id: <strong>{{ molecule.id }}</strong></p>
+          <p>Molecule SMILES: <strong class="smiles">{{ molecule.smiles }}</strong></p>
+
+          @if (molecule.metabolite) {
+            <p>
+              Metabolite of:
+              <a [routerLink]="['/jobs', jobId(), 'results', molecule.parentNum]">
+                molecule number {{ molecule.parentNum }}
+              </a>
+            </p>
+          }
+          @if (molecule.metabolites?.length) {
+            <p>
+              Metabolites:
+              @for (metabolite of molecule.metabolites; track metabolite) {
+                <a
+                  class="metabolite"
+                  [routerLink]="['/jobs', jobId(), 'results', metabolite]"
+                >{{ metabolite }}</a>
+              }
+            </p>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="notes">
+        <mat-card-header><mat-card-title>Note</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <p>{{ molecule.notes || '—' }}</p>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <mat-card>
+      <mat-card-header><mat-card-title>SUMMARY</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="tiles">
+          @for (item of summary(); track item.label) {
+            <div class="tile" [class]="'severity-' + item.severity">
+              <p class="tile-label">{{ item.label }}</p>
+              <h5><strong>{{ item.value }}</strong> (reliability: {{ item.reliability }})</h5>
+            </div>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    @for (sectionItem of sections(); track sectionItem.title) {
+      <mat-card>
+        <mat-card-header><mat-card-title>{{ sectionItem.title }}</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <div class="overall">
+            <div class="box">
+              <p class="tile-label">{{ sectionItem.predictionLabel }}</p>
+              <h5><strong>{{ sectionItem.prediction }}</strong></h5>
+            </div>
+            <div class="box">
+              <p class="tile-label">Overall Reliability</p>
+              <h5><strong>{{ sectionItem.reliability }}</strong></h5>
+            </div>
+          </div>
+
+          @if (sectionItem.values.length) {
+            <h5>Values retrieved and/or calculated in the workflow:</h5>
+            <table class="values">
+              <thead>
+                <tr>
+                  <th>Property</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (value of sectionItem.values; track $index) {
+                  <tr>
+                    <td>{{ value.name }}</td>
+                    <td>{{ value.value }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+  }
+</div>

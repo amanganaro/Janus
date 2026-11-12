@@ -1,0 +1,66 @@
+<div class="page">
+  <h1>Assessment in progress</h1>
+
+  @if (error()) {
+    <mat-card>
+      <mat-card-content>
+        <p class="error">{{ error() }}</p>
+        <button matButton="filled" type="button" (click)="backToInput()">Back to the input</button>
+      </mat-card-content>
+    </mat-card>
+  } @else if (job(); as current) {
+    <mat-card>
+      <mat-card-content>
+        <p class="status">Status: <strong>{{ current.status }}</strong></p>
+
+        @if (current.status === 'QUEUED') {
+          <p class="hint">
+            The engine runs one job at a time; this one starts as soon as the current one ends.
+          </p>
+          <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        } @else if (current.status === 'RUNNING') {
+          <p class="phase">{{ current.progress?.phase }}</p>
+          <mat-progress-bar mode="determinate" [value]="percentage()"></mat-progress-bar>
+          <p class="hint">
+            {{ current.progress?.processedMolecules }} of {{ current.progress?.totalMolecules }}
+            molecules in this phase. The seven workflows run one after the other, so the bar
+            restarts at every phase.
+          </p>
+        } @else if (current.status === 'FAILED') {
+          <p class="error">{{ current.error }}</p>
+          <button matButton="filled" type="button" (click)="backToInput()">
+            Back to the input
+          </button>
+        } @else if (current.status === 'CANCELLED') {
+          <p>The job was cancelled.</p>
+          <button matButton="filled" type="button" (click)="backToInput()">
+            Back to the input
+          </button>
+        }
+      </mat-card-content>
+
+      @if (current.status === 'QUEUED' || current.status === 'RUNNING') {
+        <mat-card-actions>
+          <button matButton type="button" [disabled]="cancelling()" (click)="cancel()">
+            Cancel
+          </button>
+        </mat-card-actions>
+      }
+    </mat-card>
+
+    @if (current.log?.length) {
+      <mat-card>
+        <mat-card-header><mat-card-title>Log</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <ul class="log">
+            @for (line of current.log; track $index) {
+              <li>{{ line }}</li>
+            }
+          </ul>
+        </mat-card-content>
+      </mat-card>
+    }
+  } @else {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+</div>

@@ -1,0 +1,28 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 50rem;
+  margin: 0 auto;
+}
+
+.phase {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.hint {
+  opacity: 0.7;
+  font-size: 0.9em;
+}
+
+.error {
+  color: #b00020;
+}
+
+.log {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-family: monospace;
+  font-size: 0.85em;
+}

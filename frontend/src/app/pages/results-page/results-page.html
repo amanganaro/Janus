@@ -1,0 +1,208 @@
+<div class="page">
+  <div class="header">
+    <h1>Results</h1>
+    @if (job()?.results?.length) {
+      <span class="count">{{ job()!.results!.length }} compound(s)</span>
+      <span class="spacer"></span>
+      <button matButton="outlined" type="button" (click)="exportTsv()">
+        <mat-icon>download</mat-icon>
+        Export as plain text
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <mat-card><mat-card-content><p class="error">{{ error() }}</p></mat-card-content></mat-card>
+  }
+
+  @if (job()?.results?.length) {
+    <div class="groups">
+      @for (group of groups(); track group.key) {
+        <mat-checkbox
+          [checked]="group.shown"
+          (change)="toggleGroup(group.key, $event.checked)"
+        >
+          {{ group.label }}
+        </mat-checkbox>
+      }
+    </div>
+
+    <div class="table-wrapper">
+      <table
+        mat-table
+        [dataSource]="rows()"
+        matSort
+        (matSortChange)="sort.set($event)"
+        class="results-table"
+      >
+        <ng-container matColumnDef="detail">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let row">
+            <a
+              [routerLink]="['/jobs', jobId(), 'results', row.num]"
+              matTooltip="Show the details"
+              aria-label="Show the details"
+            >
+              <mat-icon>search</mat-icon>
+            </a>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="num">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>No.</th>
+          <td mat-cell *matCellDef="let row">{{ row.num }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="metabolite">
+          <th mat-header-cell *matHeaderCellDef>Metabolite</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.metabolite) {
+              <a
+                class="badge"
+                [routerLink]="['/jobs', jobId(), 'results', row.parentNum]"
+                matTooltip="Go to the parent molecule"
+              >
+                Metabolite
+              </a>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Id</th>
+          <td mat-cell *matCellDef="let row" [matTooltip]="row.id">{{ truncate(row.id) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="smiles">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>SMILES</th>
+          <td mat-cell *matCellDef="let row" class="smiles" [matTooltip]="row.smiles">
+            {{ truncate(row.smiles) }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="labels">
+          <th mat-header-cell *matHeaderCellDef>Label</th>
+          <td mat-cell *matCellDef="let row" class="labels">
+            @for (label of labels(row); track label.letter; let i = $index) {
+              @if (i === 3) {
+                <span class="separator">-</span>
+              }
+              <span class="letter" [class]="'severity-' + label.severity">{{ label.letter }}</span>
+            }
+          </td>
+        </ng-container>
+
+        <!-- Persistence, bioaccumulation, toxicity -->
+        <ng-container matColumnDef="p">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>P</th>
+          <td mat-cell *matCellDef="let row"><strong>{{ persistence(row) }}</strong></td>
+        </ng-container>
+        <ng-container matColumnDef="pRel">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>rel.</th>
+          <td mat-cell *matCellDef="let row">{{ reliability(row.persistence?.reliability) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="pScore">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>score</th>
+          <td mat-cell *matCellDef="let row">{{ score(row.persistence?.score) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="b">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>B [log(L/kg)]</th>
+          <td mat-cell *matCellDef="let row">{{ bioaccumulation(row) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="bRel">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>rel.</th>
+          <td mat-cell *matCellDef="let row">{{ reliability(row.bioaccumulation?.reliability) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="bScore">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>score</th>
+          <td mat-cell *matCellDef="let row">{{ score(row.bioaccumulation?.score) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="t">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>T [mg/l]</th>
+          <td mat-cell *matCellDef="let row">{{ toxicity(row) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="tRel">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>rel.</th>
+          <td mat-cell *matCellDef="let row">{{ reliability(row.toxicity?.reliability) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="tScore">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>score</th>
+          <td mat-cell *matCellDef="let row">{{ score(row.toxicity?.score) }}</td>
+        </ng-container>
+
+        <!-- Carcinogenicity, mutagenicity, reproductive toxicity -->
+        <ng-container matColumnDef="c">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>C</th>
+          <td mat-cell *matCellDef="let row"><strong>{{ carcinogenicity(row) }}</strong></td>
+        </ng-container>
+        <ng-container matColumnDef="cRel">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>rel.</th>
+          <td mat-cell *matCellDef="let row">{{ reliability(row.carcinogenicity?.reliability) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="cScore">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>score</th>
+          <td mat-cell *matCellDef="let row">{{ score(row.carcinogenicity?.score) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="m">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>M</th>
+          <td mat-cell *matCellDef="let row"><strong>{{ mutagenicity(row) }}</strong></td>
+        </ng-container>
+        <ng-container matColumnDef="mRel">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>rel.</th>
+          <td mat-cell *matCellDef="let row">{{ reliability(row.mutagenicity?.reliability) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="mScore">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>score</th>
+          <td mat-cell *matCellDef="let row">{{ score(row.mutagenicity?.score) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="r">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>R</th>
+          <td mat-cell *matCellDef="let row"><strong>{{ reproToxicity(row) }}</strong></td>
+        </ng-container>
+        <ng-container matColumnDef="rRel">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>rel.</th>
+          <td mat-cell *matCellDef="let row">{{ reliability(row.reproToxicity?.reliability) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="rScore">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>score</th>
+          <td mat-cell *matCellDef="let row">{{ score(row.reproToxicity?.score) }}</td>
+        </ng-container>
+
+        <!-- Endocrine disruption -->
+        <ng-container matColumnDef="ed">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>ED</th>
+          <td mat-cell *matCellDef="let row"><strong>{{ endocrine(row) }}</strong></td>
+        </ng-container>
+        <ng-container matColumnDef="edRel">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>rel.</th>
+          <td mat-cell *matCellDef="let row">{{ reliability(row.endocrine?.reliability) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="edScore">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>score</th>
+          <td mat-cell *matCellDef="let row">{{ score(row.endocrine?.score) }}</td>
+        </ng-container>
+
+        <!-- Final indices -->
+        <ng-container matColumnDef="vpvb">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Score(vPvB)</th>
+          <td mat-cell *matCellDef="let row">{{ index(row.scoreVPvB) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="svhc">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Score(SVHC)</th>
+          <td mat-cell *matCellDef="let row">{{ index(row.scoreSVHC) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="pbt">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Score(PBT)</th>
+          <td mat-cell *matCellDef="let row">{{ index(row.scorePBT) }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns()"></tr>
+        <tr mat-row *matRowDef="let row; columns: columns()"></tr>
+      </table>
+    </div>
+  }
+</div>
